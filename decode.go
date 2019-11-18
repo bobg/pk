@@ -208,6 +208,31 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 		return nil
 
 	case reflect.Map:
+		kt := elTyp.Key()
+		mt := reflect.MapOf(kt, reflect.TypeOf(blob.Ref{}))
+		mm := reflect.New(mt)
+		dec := d.newJSONDecoder(bytes.NewReader(s))
+		err := dec.Decode(mm.Interface())
+		if err != nil {
+			return err
+		}
+
+		dstMap := v.Elem()
+		if dstMap.IsNil() {
+			dstMap.Set(reflect.MakeMap(elTyp))
+		}
+		iter := mm.Elem().MapRange()
+		for iter.Next() {
+			mmk := iter.Key()
+			mmv := iter.Value().Interface().(blob.Ref)
+			item := reflect.New(elTyp.Elem())
+			err = d.Decode(ctx, mmv, item.Interface())
+			if err != nil {
+				return err
+			}
+			dstMap.SetMapIndex(mmk, item.Elem())
+		}
+		return nil
 
 	case reflect.String:
 		p := obj.(*string)

@@ -42,7 +42,7 @@ func parseTag(f reflect.StructField) (string, options) {
 				switch item {
 				case "inline":
 					o.inline = true
-				case "external":				// xxx need a better name than external
+				case "external": // xxx need a better name than external
 					o.external = true
 				case "omitempty":
 					o.omitEmpty = true

@@ -165,7 +165,22 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 		if err != nil {
 			return err
 		}
-		// xxx
+
+		var (
+			arr      = v.Elem()
+			arrElTyp = elTyp.Elem()
+		)
+		for i := 0; i < arr.Len(); i++ {
+			el := arr.Index(i)
+			el.Set(reflect.Zero(arrElTyp))
+			if i < len(refs) {
+				err = d.Decode(ctx, refs[i], el.Addr().Interface())
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 
 	case reflect.Slice:
 		var refs []blob.Ref

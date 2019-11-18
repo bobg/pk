@@ -23,6 +23,7 @@ func TestPk(t *testing.T) {
 		{name: "empty string", obj: ""},
 		{name: "non-empty string", obj: "foo"},
 		{name: "slice of strings", obj: []string{"foo", "bar", "baz"}},
+		{name: "array of ints", obj: [...]int{10, 11, 12}},
 		{name: "map of string to int", obj: map[string]int{"foo": 1, "bar": 2}},
 	}
 

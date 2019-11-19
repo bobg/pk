@@ -93,18 +93,13 @@ func (e *Encoder) Encode(ctx context.Context, obj interface{}) (blob.Ref, error)
 		return sref.Ref, errors.Wrap(err, "storing float64 val")
 
 	case reflect.Array, reflect.Slice:
-		var refs []blob.Ref
-		for i := 0; i < v.Len(); i++ {
-			vv := v.Index(i)
-			ref, err := e.Encode(ctx, vv.Interface())
-			if err != nil {
-				return blob.Ref{}, err
-			}
-			refs = append(refs, ref)
+		refs, err := e.encodeSliceOrArray(ctx, v)
+		if err != nil {
+			return blob.Ref{}, err
 		}
 		buf := new(bytes.Buffer)
 		enc := e.newJSONEncoder(buf)
-		err := enc.Encode(refs)
+		err = enc.Encode(refs)
 		if err != nil {
 			return blob.Ref{}, err
 		}
@@ -113,22 +108,13 @@ func (e *Encoder) Encode(ctx context.Context, obj interface{}) (blob.Ref, error)
 
 	case reflect.Map:
 		// Keys are not blobrefs. (Should they be?)
-		kt := t.Key()
-		mt := reflect.MapOf(kt, reflect.TypeOf(blob.Ref{}))
-		mm := reflect.MakeMap(mt)
-		iter := v.MapRange()
-		for iter.Next() {
-			mmk := iter.Key()
-			mmv := iter.Value()
-			ref, err := e.Encode(ctx, mmv.Interface())
-			if err != nil {
-				return blob.Ref{}, err
-			}
-			mm.SetMapIndex(mmk, reflect.ValueOf(ref))
+		mm, err := e.encodeMap(ctx, v)
+		if err != nil {
+			return blob.Ref{}, err
 		}
 		buf := new(bytes.Buffer)
 		enc := e.newJSONEncoder(buf)
-		err := enc.Encode(mm.Interface())
+		err = enc.Encode(mm.Interface())
 		if err != nil {
 			return blob.Ref{}, err
 		}
@@ -166,31 +152,17 @@ func (e *Encoder) Encode(ctx context.Context, obj interface{}) (blob.Ref, error)
 
 				switch tf.Type.Kind() {
 				case reflect.Slice, reflect.Array:
-					var refs []blob.Ref
-					for i := 0; i < vf.Len(); i++ {
-						vfv := vf.Index(i)
-						ref, err := e.Encode(ctx, vfv.Interface())
-						if err != nil {
-							return blob.Ref{}, err
-						}
-						refs = append(refs, ref)
+					refs, err := e.encodeSliceOrArray(ctx, vf)
+					if err != nil {
+						return blob.Ref{}, err
 					}
 					m[name] = refs
 					continue
 
 				case reflect.Map:
-					kt := tf.Type.Key()
-					mmt := reflect.MapOf(kt, reflect.TypeOf(blob.Ref{}))
-					mm := reflect.MakeMap(mmt)
-					iter := vf.MapRange()
-					for iter.Next() {
-						mmk := iter.Key()
-						mmv := iter.Value()
-						ref, err := e.Encode(ctx, mmv.Interface())
-						if err != nil {
-							return blob.Ref{}, err
-						}
-						mm.SetMapIndex(mmk, reflect.ValueOf(ref))
+					mm, err := e.encodeMap(ctx, vf)
+					if err != nil {
+						return blob.Ref{}, err
 					}
 					m[name] = mm.Interface()
 					continue
@@ -223,4 +195,35 @@ func (e *Encoder) newJSONEncoder(w io.Writer) *json.Encoder {
 	result.SetEscapeHTML(e.escapeHTML)
 	result.SetIndent(e.prefix, e.indent)
 	return result
+}
+
+func (e *Encoder) encodeSliceOrArray(ctx context.Context, sliceOrArray reflect.Value) ([]blob.Ref, error) {
+	var refs []blob.Ref
+	for i := 0; i < sliceOrArray.Len(); i++ {
+		el := sliceOrArray.Index(i)
+		ref, err := e.Encode(ctx, el.Interface())
+		if err != nil {
+			return nil, err // xxx return the refs created so far?
+		}
+		refs = append(refs, ref)
+	}
+	return refs, nil
+}
+
+// Returns a reflect.Value containing a map[K]blob.Ref, where K is the key type of m.
+func (e *Encoder) encodeMap(ctx context.Context, m reflect.Value) (reflect.Value, error) {
+	kt := m.Type().Key()
+	mt := reflect.MapOf(kt, reflect.TypeOf(blob.Ref{}))
+	mm := reflect.MakeMap(mt)
+	iter := m.MapRange()
+	for iter.Next() {
+		mk := iter.Key()
+		mv := iter.Value()
+		ref, err := e.Encode(ctx, mv.Interface())
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		mm.SetMapIndex(mk, reflect.ValueOf(ref))
+	}
+	return mm, nil
 }

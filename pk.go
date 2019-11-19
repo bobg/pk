@@ -3,6 +3,7 @@ package pk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"perkeep.org/pkg/blob"
@@ -42,3 +43,9 @@ func (e ErrUnsupportedType) Error() string {
 	}
 	return fmt.Sprintf("unsupported type \"%s\"", e.Name)
 }
+
+var (
+	ErrDecoding   = errors.New("decoding")
+	ErrNotPointer = errors.New("not pointer")
+	ErrNilPointer = errors.New("nil pointer")
+)

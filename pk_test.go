@@ -13,9 +13,9 @@ import (
 
 func TestPk(t *testing.T) {
 	cases := []struct {
-		name string
-		obj  interface{}
-		// refs []blob.Ref
+		name  string
+		obj   interface{}
+		check func(t *testing.T, got, want interface{})
 	}{
 		{name: "boolean false", obj: false},
 		{name: "boolean true", obj: true},
@@ -25,6 +25,30 @@ func TestPk(t *testing.T) {
 		{name: "slice of strings", obj: []string{"foo", "bar", "baz"}},
 		{name: "array of ints", obj: [...]int{10, 11, 12}},
 		{name: "map of string to int", obj: map[string]int{"foo": 1, "bar": 2}},
+		{
+			name: "struct",
+			obj: &astruct{
+				A: 1,
+				B: 2,
+				C: "hello",
+				D: []string{"foo", "bar"},
+				E: []string{"plugh", "xyzzy"},
+				G: true,
+				H: true,
+				I: true,
+			},
+			check: func(t *testing.T, gotI, wantI interface{}) {
+				got := gotI.(*astruct)
+				if got.I {
+					t.Error("got field I true, want false")
+				} else {
+					got.I = true
+					if !reflect.DeepEqual(got, wantI) {
+						t.Errorf("got %+v, want %+v", got, wantI)
+					}
+				}
+			},
+		},
 	}
 
 	ctx := context.Background()
@@ -45,7 +69,9 @@ func TestPk(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(dupVal.Elem().Interface(), c.obj) {
+			if c.check != nil {
+				c.check(t, dupVal.Elem().Interface(), c.obj)
+			} else if !reflect.DeepEqual(dupVal.Elem().Interface(), c.obj) {
 				t.Errorf("got %v, want %v", dupVal.Elem().Interface(), c.obj)
 			}
 
@@ -67,4 +93,16 @@ func TestPk(t *testing.T) {
 			}
 		})
 	}
+}
+
+type astruct struct {
+	A int
+	B int    `pk:"b"`
+	C string `pk:"a-string"`
+	D []string
+	E []string `pk:",external"`
+	F *astruct `pk:",omitempty"`
+	G bool
+	H bool `pk:"inline"`
+	I bool `pk:"-"`
 }

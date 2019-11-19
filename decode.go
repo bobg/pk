@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"reflect"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"perkeep.org/pkg/blob"
 )
 
@@ -19,6 +21,8 @@ type Decoder struct {
 func NewDecoder(src blob.Fetcher) *Decoder {
 	return &Decoder{src: src}
 }
+
+var reftype = reflect.TypeOf(blob.Ref{})
 
 func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) error {
 	if u, ok := obj.(Unmarshaler); ok {
@@ -36,13 +40,13 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 
 	r, size, err := d.src.Fetch(ctx, ref)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "fetching %s from src", ref)
 	}
 	defer r.Close()
 
 	s, err := ioutil.ReadAll(r)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "reading body of %s", ref)
 	}
 
 	elTyp := t.Elem()
@@ -56,7 +60,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Int:
 		n, err := strconv.ParseInt(string(s), 10, 0)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing int from %s", string(s))
 		}
 		p := obj.(*int)
 		*p = int(n)
@@ -65,7 +69,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Int8:
 		n, err := strconv.ParseInt(string(s), 10, 8)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing int8 from %s", string(s))
 		}
 		p := obj.(*int8)
 		*p = int8(n)
@@ -74,7 +78,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Int16:
 		n, err := strconv.ParseInt(string(s), 10, 16)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing int16 from %s", string(s))
 		}
 		p := obj.(*int16)
 		*p = int16(n)
@@ -83,7 +87,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Int32:
 		n, err := strconv.ParseInt(string(s), 10, 32)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing int32 from %s", string(s))
 		}
 		p := obj.(*int32)
 		*p = int32(n)
@@ -92,7 +96,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Int64:
 		n, err := strconv.ParseInt(string(s), 10, 64)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing int64 from %s", string(s))
 		}
 		p := obj.(*int64)
 		*p = n
@@ -101,7 +105,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Uint:
 		n, err := strconv.ParseUint(string(s), 10, 0)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing uint from %s", string(s))
 		}
 		p := obj.(*uint)
 		*p = uint(n)
@@ -110,7 +114,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Uint8:
 		n, err := strconv.ParseUint(string(s), 10, 8)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing uint8 from %s", string(s))
 		}
 		p := obj.(*uint8)
 		*p = uint8(n)
@@ -119,7 +123,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Uint16:
 		n, err := strconv.ParseUint(string(s), 10, 16)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing uint16 from %s", string(s))
 		}
 		p := obj.(*uint16)
 		*p = uint16(n)
@@ -128,7 +132,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Uint32:
 		n, err := strconv.ParseUint(string(s), 10, 32)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing uint32 from %s", string(s))
 		}
 		p := obj.(*uint32)
 		*p = uint32(n)
@@ -137,7 +141,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Uint64:
 		n, err := strconv.ParseUint(string(s), 10, 64)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing uint64 from %s", string(s))
 		}
 		p := obj.(*uint64)
 		*p = n
@@ -146,7 +150,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Float32:
 		f, err := strconv.ParseFloat(string(s), 32)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing float32 from %s", string(s))
 		}
 		p := obj.(*float32)
 		*p = float32(f)
@@ -155,7 +159,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 	case reflect.Float64:
 		f, err := strconv.ParseFloat(string(s), 64)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "parsing float64 from %s", string(s))
 		}
 		p := obj.(*float64)
 		*p = f
@@ -166,7 +170,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 		dec := d.newJSONDecoder(bytes.NewReader(s))
 		err := dec.Decode(&refs)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "JSON-decoding blobref array")
 		}
 		arr := v.Elem()
 		return d.buildArray(ctx, arr, refs)
@@ -176,7 +180,7 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 		dec := d.newJSONDecoder(bytes.NewReader(s))
 		err := dec.Decode(&refs)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "JSON-decoding blobref slice")
 		}
 		slice := v.Elem()
 		slice, err = d.buildSlice(ctx, slice, refs)
@@ -188,12 +192,12 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 
 	case reflect.Map:
 		kt := elTyp.Key()
-		mt := reflect.MapOf(kt, reflect.TypeOf(blob.Ref{}))
+		mt := reflect.MapOf(kt, reftype)
 		mm := reflect.New(mt)
 		dec := d.newJSONDecoder(bytes.NewReader(s))
 		err := dec.Decode(mm.Interface())
 		if err != nil {
-			return err
+			return errors.Wrap(err, "JSON-decoding map[K]blob.Ref")
 		}
 		return d.buildMap(ctx, v.Elem(), mm.Elem())
 
@@ -203,103 +207,96 @@ func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) err
 		return nil
 
 	case reflect.Struct:
-		var m map[string]interface{}
+		// Construct an intermediate struct type for JSON-unmarshaling into.
+
+		var ftypes []reflect.StructField
+		for i := 0; i < elTyp.NumField(); i++ {
+			tf := elTyp.Field(i)
+			name, o := parseTag(tf)
+			tf.Tag = reflect.StructTag(fmt.Sprintf(`%s json:"%s"`, tf.Tag, name))
+			if o.omit || o.inline {
+				ftypes = append(ftypes, tf)
+				continue
+			}
+			if !o.external {
+				switch tf.Type.Kind() {
+				case reflect.Slice:
+					tf.Type = reflect.SliceOf(reftype)
+					ftypes = append(ftypes, tf)
+					continue
+
+				case reflect.Array:
+					tf.Type = reflect.SliceOf(reftype) // sic, not ArrayOf
+					ftypes = append(ftypes, tf)
+					continue
+
+				case reflect.Map:
+					tf.Type = reflect.MapOf(tf.Type.Key(), reftype)
+					ftypes = append(ftypes, tf)
+					continue
+				}
+			}
+			tf.Type = reftype
+			ftypes = append(ftypes, tf)
+		}
+		intermediateTyp := reflect.StructOf(ftypes)
+		intermediateStruct := reflect.New(intermediateTyp)
 		dec := d.newJSONDecoder(bytes.NewReader(s))
-		err := dec.Decode(&m)
+		err := dec.Decode(intermediateStruct.Interface())
 		if err != nil {
-			return err
+			return errors.Wrap(err, "JSON-decoding into intermediate struct")
 		}
 
 		structVal := v.Elem()
-
 		for i := 0; i < elTyp.NumField(); i++ {
 			tf := elTyp.Field(i)
 			name, o := parseTag(tf)
 			if o.omit {
 				continue
 			}
-
-			mItem, ok := m[name]
-			if !ok {
-				continue
-			}
-
+			field := structVal.Field(i)
+			ifield := intermediateStruct.Elem().Field(i)
 			if o.inline {
-				// m[name] is the result of JSON-marshaling, then JSON-unmarshaling the original field value.
-				// That means it could be a string, a number, a map, a slice, etc.
-				// Re-JSON-marshaling it should allow us to un-JSON-marshal it into an object of the right type.
-				// This is the simplest but probably not the most efficient approach to take here.
-				reJSON, err := json.Marshal(mItem)
-				if err != nil {
-					return err
-				}
-				dec := d.newJSONDecoder(bytes.NewReader(reJSON))
-				fieldVal := reflect.New(tf.Type)
-				err = dec.Decode(fieldVal.Interface())
-				if err != nil {
-					return err
-				}
-				structVal.Field(i).Set(fieldVal)
+				field.Set(ifield)
 				continue
 			}
 			if !o.external {
 				switch tf.Type.Kind() {
 				case reflect.Slice:
-					refs, ok := mItem.([]blob.Ref)
-					if !ok {
-						return ErrDecoding
-					}
-					slice := structVal.Field(i)
-					slice, err = d.buildSlice(ctx, slice, refs)
+					refs := ifield.Interface().([]blob.Ref)
+					slice, err := d.buildSlice(ctx, field, refs)
 					if err != nil {
-						return err
+						return errors.Wrapf(err, "building slice for field %s", name)
 					}
-					structVal.Field(i).Set(slice)
+					field.Set(slice)
 					continue
 
 				case reflect.Array:
-					refs, ok := mItem.([]blob.Ref)
-					if !ok {
-						return ErrDecoding
-					}
-					arr := structVal.Field(i)
-					err = d.buildArray(ctx, arr, refs)
+					refs := ifield.Interface().([]blob.Ref)
+					err = d.buildArray(ctx, field, refs)
 					if err != nil {
-						return err
+						return errors.Wrapf(err, "building array for field %s", name)
 					}
 					continue
 
 				case reflect.Map:
-					// Re-JSON-marshal m[name] and unmarshal it into a map[K]blob.Ref.
-					reJSON, err := json.Marshal(mItem)
+					err = d.buildMap(ctx, field, ifield)
 					if err != nil {
-						return err
-					}
-					mt := reflect.MapOf(tf.Type.Key(), reflect.TypeOf(blob.Ref{}))
-					refsMap := reflect.New(mt)
-					dec := d.newJSONDecoder(bytes.NewReader(reJSON))
-					err = dec.Decode(refsMap.Interface())
-					if err != nil {
-						return err
-					}
-					err = d.buildMap(ctx, structVal.Field(i), refsMap.Elem())
-					if err != nil {
-						return err
+						return errors.Wrapf(err, "building map for field %s", name)
 					}
 					continue
 				}
 			}
-
-			fieldRef, ok := mItem.(blob.Ref)
-			if !ok {
-				return ErrDecoding
+			if ifield.IsZero() {
+				continue
 			}
-			fieldVal := reflect.New(tf.Type)
-			err = d.Decode(ctx, fieldRef, fieldVal.Interface())
+			fieldRef := ifield.Interface().(blob.Ref)
+			newFieldVal := reflect.New(tf.Type)
+			err = d.Decode(ctx, fieldRef, newFieldVal.Interface())
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "decoding ref %s for field %s", fieldRef, name)
 			}
-			structVal.Field(i).Set(fieldVal)
+			field.Set(newFieldVal.Elem())
 		}
 		return nil
 

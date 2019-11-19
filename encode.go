@@ -182,6 +182,7 @@ func (e *Encoder) Encode(ctx context.Context, obj interface{}) (blob.Ref, error)
 		if err != nil {
 			return blob.Ref{}, errors.Wrapf(err, "encoding fields of struct type %s", t.Name())
 		}
+
 		sref, err := blobserver.ReceiveString(ctx, e.dst, buf.String())
 		return sref.Ref, errors.Wrapf(err, "storing struct type %s", t.Name())
 

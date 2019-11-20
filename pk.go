@@ -33,10 +33,12 @@ func Unmarshal(ctx context.Context, src blob.Fetcher, ref blob.Ref, obj interfac
 	return NewDecoder(src).Decode(ctx, ref, obj)
 }
 
+// ErrUnsupportedType indicates an attempt to marshal or unmarshal an unsupported Go type.
 type ErrUnsupportedType struct {
 	Name string
 }
 
+// Error implements the error interface.
 func (e ErrUnsupportedType) Error() string {
 	if e.Name == "" {
 		return "unsupported type"
@@ -45,7 +47,12 @@ func (e ErrUnsupportedType) Error() string {
 }
 
 var (
-	ErrDecoding   = errors.New("decoding")
+	// ErrDecoding is produced when a blob can't be unmarshaled into a given Go object.
+	ErrDecoding = errors.New("decoding")
+
+	// ErrNotPointer is produced when a non-pointer is passed to Unmarshal or Decode.
 	ErrNotPointer = errors.New("not pointer")
+
+	// ErrNilPointer is produced when a nil pointer is passed to Unmarshal or Decode.
 	ErrNilPointer = errors.New("nil pointer")
 )

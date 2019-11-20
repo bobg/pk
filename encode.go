@@ -13,6 +13,8 @@ import (
 	"perkeep.org/pkg/blobserver"
 )
 
+// Encoder is an object that can marshal a Go data structure
+// as a blob or tree of blobs stored in a Perkeep server.
 type Encoder struct {
 	dst blobserver.BlobReceiver
 
@@ -24,18 +26,31 @@ type Encoder struct {
 	// (with a callback for determining each item's camliType).
 }
 
+// NewEncoder creates a new Encoder writing to dst, a Perkeep server.
 func NewEncoder(dst blobserver.BlobReceiver) *Encoder {
 	return &Encoder{dst: dst}
 }
 
+// SetEscapeHTML tells whether to escape HTML entities
+// when writing strings that are part of JSON objects
+// (e.g., whether "<foo>" should become "&lt;foo&rt;").
+// By default HTML is not escaped.
 func (e *Encoder) SetEscapeHTML(val bool) {
 	e.escapeHTML = val
 }
 
+// SetIndent controls formatting of JSON objects:
+// prefix is prepended to each line
+// and indent is added to indent according to the line's depth.
+// (This works just like "encoding/json".Encoder.SetIndent.)
+// SetIndent("", "") disables indentation. This is the default.
 func (e *Encoder) SetIndent(prefix, indent string) {
 	e.prefix, e.indent = prefix, indent
 }
 
+// Encode marshals obj as a blob or tree of blobs,
+// writes them to the Perkeep server in e,
+// and returns the blobref of the root of the tree.
 func (e *Encoder) Encode(ctx context.Context, obj interface{}) (blob.Ref, error) {
 	if m, ok := obj.(Marshaler); ok {
 		return m.PkMarshal(ctx, e.dst)

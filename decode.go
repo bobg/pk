@@ -14,16 +14,21 @@ import (
 	"perkeep.org/pkg/blob"
 )
 
+// Decoder is an object that can unmarshal data into Go data structures from a Perkeep server.
 type Decoder struct {
 	src blob.Fetcher
 }
 
+// NewDecoder creates a new Decoder reading from src, a Perkeep server.
 func NewDecoder(src blob.Fetcher) *Decoder {
 	return &Decoder{src: src}
 }
 
 var reftype = reflect.TypeOf(blob.Ref{})
 
+// Decode decodes the Perkeep blob or blobs rooted at ref,
+// unmarshaling into obj, which must be a non-nil pointer.
+// See Unmarshal for more information.
 func (d *Decoder) Decode(ctx context.Context, ref blob.Ref, obj interface{}) error {
 	if u, ok := obj.(Unmarshaler); ok {
 		return u.PkUnmarshal(ctx, d.src, ref)

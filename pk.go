@@ -52,14 +52,19 @@ type Unmarshaler interface {
 // These rules may be overridden with struct tags using the key "pk", as follows:
 //
 // - `pk:"-"` means skip this field;
+//
 // - `pk:"name"` means use "name" as the field name in the map[string]interface{} rather than the struct field's name;
+//
 // - `pk:",option1,option2" means turn on the given options (available options listed below);
+//
 // - `pk:"name,option1,option2" means use the given name and turn on the given options.
 //
 // Available options in "pk" struct tags are:
 //
 // - omitempty, causes the field to be skipped if it has the zero value for its type;
+//
 // - inline, causes the field's value to be used directly in the map[string]interface{} rather than recursively marshaling it;
+//
 // - external, causes container types (slices, arrays, and maps) to be marshaled separately from the struct, and the resulting blobref used as the value, rather than marshaling them as slices or maps of member blobrefs.
 func Marshal(ctx context.Context, dst blobserver.BlobReceiver, obj interface{}) (blob.Ref, error) {
 	return NewEncoder(dst).Encode(ctx, obj)

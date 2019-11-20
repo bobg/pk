@@ -22,13 +22,32 @@ type Unmarshaler interface {
 
 // Marshal stores obj to dst as a tree of Perkeep blobs.
 // It returns a reference to the root of the tree.
-// xxx describe how different types are marshaled.
+//
+// How obj is marshaled depends on its type.
+//
+// Boolean false marshals as the zero-byte blob.
+// Boolean true marshals as the four-byte string "true".
+// (When unmarshaling, all blobs other than the zero-byte blob count as true.)
+//
+// Integers and floats of all sizes are marshaled as human-readable base 10 number strings.
+//
+// Arrays and slices are marshaled as a JSON array of blobrefs: "[ref,ref,...]".
+// The blobrefs are those of the recursively marshaled members of the array or slice.
+//
+// A map of type map[K]T is marshaled as the JSON encoding of a map[K]blob.Ref.
+// The blobrefs are those of the recursively marshaled values of the map.
+// (The keys of the map are not marshaled, however.)
+//
+// A string is marshaled as a blob equal to the bytes of the string.
+//
+// (xxx describe structs)
 func Marshal(ctx context.Context, dst blobserver.BlobReceiver, obj interface{}) (blob.Ref, error) {
 	return NewEncoder(dst).Encode(ctx, obj)
 }
 
 // Unmarshal populates obj from the tree of blobs in src rooted at ref.
-// xxx describe how different types are unmarshaled.
+// Unmarshaling is the inverse of marshaling.
+// See Marshal for the rules of how Go types correspond to marshaled Perkeep blobs.
 func Unmarshal(ctx context.Context, src blob.Fetcher, ref blob.Ref, obj interface{}) error {
 	return NewDecoder(src).Decode(ctx, ref, obj)
 }

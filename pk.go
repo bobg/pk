@@ -55,9 +55,9 @@ type Unmarshaler interface {
 //
 // - `pk:"name"` means use "name" as the field name in the map[string]interface{} rather than the struct field's name;
 //
-// - `pk:",option1,option2" means turn on the given options (available options listed below);
+// - `pk:",option1,option2"` means turn on the given options (available options listed below);
 //
-// - `pk:"name,option1,option2" means use the given name and turn on the given options.
+// - `pk:"name,option1,option2"` means use the given name and turn on the given options.
 //
 // Available options in "pk" struct tags are:
 //
